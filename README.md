@@ -37,17 +37,43 @@ The system is divided into four distinct operational layers:
 
 ---
 
-## 🧰 Hardware Stack & Power System
+## 🔌 Hardware Wiring & Connection Design
 
-To ensure complete mobility in remote agricultural zones, the system operates on a custom, portable power architecture:
-* **Main Battery:** 14.8V 2600mAh rechargeable battery.
-* **Power Regulation:** A DC-DC Buck Converter steps down the voltage to provide a stable 5V line for the Arduino and GPS module, while passing the required 12-24V line to the NPK sensor.
+This section details the pin-to-pin connections for the Data Acquisition Layer (Arduino) and the Edge Computing Layer (Raspberry Pi), as well as the power distribution network.
 
-### Pin Configuration (Arduino Data Acquisition)
-Based on the `SoftwareSerial` implementation in the data acquisition codebase:
-* **NPK Sensor (RS485 to TTL):** `RX = Pin 10`, `TX = Pin 11`
-* **RS485 Control Pins:** `RE = Pin 6`, `DE = Pin 7`
-* **NEO-6M GPS:** `RX = Pin 8`, `TX = Pin 9`
+### 1. Power Distribution Network
+The system is designed for remote mobility, powered by a single high-capacity battery with regulated step-downs.
+
+* **Main Power Source:** 14.8V 2600mAh Li-ion Battery
+* **NPK Sensor (JXBS-3001):** Receives 12-24V directly from the unregulated battery line.
+* **DC-DC Buck Converter:** Steps down the 14.8V source to a stable 5V.
+* **5V Regulated Line:** Powers the Arduino Uno and the NEO-6M GPS Module.
+* **Raspberry Pi 4:** Powered independently via a 5V Power Bank (or adapted from the buck converter).
+
+### 2. Arduino Uno (Data Acquisition Node)
+The Arduino acts as the central polling hub. It uses `SoftwareSerial` to communicate with both the NPK sensor (via an RS485-to-TTL module) and the GPS module.
+
+| Arduino Pin | Connected Component | Function / Details |
+| :--- | :--- | :--- |
+| **Pin 10** | RS485 Module (RO) | NPK Sensor SoftwareSerial RX |
+| **Pin 11** | RS485 Module (DI) | NPK Sensor SoftwareSerial TX |
+| **Pin 6** | RS485 Module (RE) | Receiver Enable (Active Low) |
+| **Pin 7** | RS485 Module (DE) | Driver Enable (Active High) |
+| **Pin 8** | NEO-6M GPS (TX) | GPS SoftwareSerial RX |
+| **Pin 9** | NEO-6M GPS (RX) | GPS SoftwareSerial TX |
+| **5V / GND**| RS485 & GPS Modules | Shared logic power ground |
+
+*Note: The RS485 module's A and B terminals connect directly to the JXBS-3001 sensor's A (Yellow) and B (Blue) wires.*
+
+### 3. Raspberry Pi 4 (Edge Processing Node)
+The Raspberry Pi handles local computation, CSV logging, and GUI rendering. 
+
+| Raspberry Pi Port/Pin | Connected Component | Function / Details |
+| :--- | :--- | :--- |
+| **USB Port** | Arduino Uno | Serial data transfer (Mapped to `/dev/ttyACM0`) |
+| **GPIO 21 (Pin 40)** | Omron B3F Push Button | Hardware interrupt for manual data capture |
+| **GND (Pin 39)** | Omron B3F Push Button | Ground for the physical trigger |
+| **Display Header/I2C**| 3.5" Touchscreen | Renders the Tkinter GUI dashboard |
 
 ---
 
